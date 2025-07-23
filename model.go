@@ -43,6 +43,7 @@ type Model struct {
 	settingsIndex   int
 	zoomedBullet    *Bullet
 	breadcrumbs     []*Bullet
+	configManager   *ConfigManager
 }
 
 func NewModel() Model {
@@ -51,36 +52,73 @@ func NewModel() Model {
 	ti.Focus()
 	ti.CharLimit = 256
 
+	// Initialize config manager
+	configManager, err := NewConfigManager()
+	if err != nil {
+		// Fallback to default if config fails
+		configManager = nil
+	}
+
 	m := Model{
-		rootBullets: make([]*Bullet, 0),
-		allBullets:  make([]*Bullet, 0),
-		textInput:   ti,
-		editMode:    EditModeNone,
-		appMode:     AppModeNormal,
-		settings: Settings{
-			ShowHierarchyLines: true,
-		},
+		rootBullets:   make([]*Bullet, 0),
+		allBullets:    make([]*Bullet, 0),
+		textInput:     ti,
+		editMode:      EditModeNone,
+		appMode:       AppModeNormal,
 		settingsIndex: 0,
 		zoomedBullet:  nil,
 		breadcrumbs:   make([]*Bullet, 0),
+		configManager: configManager,
+	}
+
+	// Load data from config or use defaults
+	if configManager != nil {
+		if data, err := configManager.Load(); err == nil {
+			m.rootBullets = data.RootBullets
+			m.settings = data.Settings
+		} else {
+			// Use defaults if loading fails
+			m.loadDefaults()
+		}
+	} else {
+		// Use defaults if config manager failed to initialize
+		m.loadDefaults()
+	}
+
+	m.rebuildVisibleList()
+	return m
+}
+
+func (m *Model) loadDefaults() {
+	m.settings = Settings{
+		ShowHierarchyLines: true,
 	}
 
 	root := NewBullet("Welcome to terminal Workflowy!")
-	m.rootBullets = append(m.rootBullets, root)
-
 	child1 := NewBullet("Press Enter to add a new bullet")
 	child2 := NewBullet("Use arrow keys to navigate")
 	child3 := NewBullet("Tab/Shift+Tab to indent/outdent")
+	subchild := NewBullet("Space to collapse/expand")
 
 	root.AddChild(child1)
 	root.AddChild(child2)
 	root.AddChild(child3)
-
-	subchild := NewBullet("Space to collapse/expand")
 	child3.AddChild(subchild)
 
-	m.rebuildVisibleList()
-	return m
+	m.rootBullets = []*Bullet{root}
+}
+
+func (m *Model) saveData() error {
+	if m.configManager == nil {
+		return nil // No config manager, skip saving
+	}
+
+	data := &AppData{
+		RootBullets: m.rootBullets,
+		Settings:    m.settings,
+	}
+
+	return m.configManager.Save(data)
 }
 
 func (m *Model) rebuildVisibleList() {
@@ -167,6 +205,9 @@ func (m *Model) addNewBullet(content string) {
 			break
 		}
 	}
+	
+	// Auto-save after adding new bullet
+	m.saveData()
 }
 
 func (m *Model) deleteBullet() {
@@ -190,6 +231,9 @@ func (m *Model) deleteBullet() {
 	if m.selectedIndex >= len(m.allBullets) && m.selectedIndex > 0 {
 		m.selectedIndex--
 	}
+	
+	// Auto-save after deleting bullet
+	m.saveData()
 }
 
 func (m *Model) indentBullet() {
@@ -542,6 +586,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				switch m.settingsIndex {
 				case 0: // Toggle hierarchy lines
 					m.settings.ShowHierarchyLines = !m.settings.ShowHierarchyLines
+					// Auto-save after settings change
+					m.saveData()
 				}
 			}
 			return m, nil
@@ -567,6 +613,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				} else if m.editMode == EditModeEdit && m.editingBullet != nil {
 					m.editingBullet.Content = content
 					m.editingBullet.IsEditing = false
+					// Auto-save after editing content
+					m.saveData()
 				}
 				m.editMode = EditModeNone
 				m.editingBullet = nil
@@ -592,6 +640,8 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 		switch msg.String() {
 		case "q", "ctrl+c":
+			// Save data before quitting
+			m.saveData()
 			return m, tea.Quit
 
 		case "up", "k":
