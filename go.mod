@@ -1,4 +1,4 @@
-module github.com/vladvarbatov/ocli
+module github.com/vladzima/ocli
 
 go 1.23.4
 
