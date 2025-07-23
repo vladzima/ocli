@@ -1,3 +1,8 @@
+# v1.0.3
+
+## Changes
+- Minor changes in installation process
+
 # v1.0.2
 
 ## Changes
