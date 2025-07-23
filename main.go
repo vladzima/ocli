@@ -8,7 +8,7 @@ import (
 	tea "github.com/charmbracelet/bubbletea"
 )
 
-const Version = "1.0.3"
+const Version = "1.1.0"
 
 func main() {
 	var showVersion = flag.Bool("version", false, "Show version information")

@@ -56,7 +56,8 @@ func (cm *ConfigManager) Save(data *AppData) error {
 func (cm *ConfigManager) Load() (*AppData, error) {
 	// Check if config file exists
 	if _, err := os.Stat(cm.configFile); os.IsNotExist(err) {
-		// Return default data if config doesn't exist
+		// IMPORTANT: Only create tutorial data for NEW users
+		// Existing users' data is always preserved when updating OCLI
 		return cm.createDefaultData(), nil
 	}
 
@@ -126,20 +127,32 @@ func (cm *ConfigManager) restoreParentRelationshipsRecursive(bullet *Bullet, par
 }
 
 func (cm *ConfigManager) createDefaultData() *AppData {
-	// Create the default tutorial data
-	root := NewBullet("Welcome to terminal Workflowy!")
-	child1 := NewBullet("Press Enter to add a new bullet")
-	child2 := NewBullet("Use arrow keys to navigate")
-	child3 := NewBullet("Tab/Shift+Tab to indent/outdent")
-	subchild := NewBullet("Space to collapse/expand")
-
-	root.AddChild(child1)
-	root.AddChild(child2)
-	root.AddChild(child3)
-	child3.AddChild(subchild)
+	// Create concise tutorial data
+	welcome := NewBullet("Welcome to OCLI!")
+	
+	// Essential basics
+	welcome.AddChild(NewBullet("Press Enter to add bullets, ↑↓ to navigate"))
+	welcome.AddChild(NewBullet("Tab/Shift+Tab to indent/outdent"))
+	
+	// Show task example
+	task := NewBullet("Press 't' for tasks, 'x' to complete")
+	task.ToggleTask()
+	welcome.AddChild(task)
+	
+	// Show colors
+	colored := NewBullet("Press 'c' for colors")
+	colored.Color = ColorBlue
+	welcome.AddChild(colored)
+	
+	// Essential features
+	collapse := NewBullet("Space to collapse/expand, → to zoom in")
+	collapse.AddChild(NewBullet("Hidden content"))
+	welcome.AddChild(collapse)
+	
+	welcome.AddChild(NewBullet("Press 'h' for help, 's' for settings, 'q' to quit"))
 
 	return &AppData{
-		RootBullets: []*Bullet{root},
+		RootBullets: []*Bullet{welcome},
 		Settings: Settings{
 			ShowHierarchyLines: true,
 		},

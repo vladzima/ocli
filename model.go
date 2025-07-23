@@ -44,6 +44,7 @@ type Model struct {
 	zoomedBullet    *Bullet
 	breadcrumbs     []*Bullet
 	configManager   *ConfigManager
+	scrollOffset    int
 }
 
 func NewModel() Model {
@@ -86,6 +87,7 @@ func NewModel() Model {
 	}
 
 	m.rebuildVisibleList()
+	m.ensureSelectedVisible()
 	return m
 }
 
@@ -94,18 +96,19 @@ func (m *Model) loadDefaults() {
 		ShowHierarchyLines: true,
 	}
 
-	root := NewBullet("Welcome to terminal Workflowy!")
-	child1 := NewBullet("Press Enter to add a new bullet")
-	child2 := NewBullet("Use arrow keys to navigate")
-	child3 := NewBullet("Tab/Shift+Tab to indent/outdent")
-	subchild := NewBullet("Space to collapse/expand")
-
-	root.AddChild(child1)
-	root.AddChild(child2)
-	root.AddChild(child3)
-	child3.AddChild(subchild)
-
-	m.rootBullets = []*Bullet{root}
+	// Use the same comprehensive tutorial as persistence layer
+	if m.configManager != nil {
+		defaultData := m.configManager.createDefaultData()
+		m.rootBullets = defaultData.RootBullets
+		m.settings = defaultData.Settings
+	} else {
+		// Fallback if config manager is nil
+		root := NewBullet("Welcome to OCLI!")
+		root.AddChild(NewBullet("Press Enter to add a new bullet"))
+		root.AddChild(NewBullet("Use arrow keys to navigate"))
+		root.AddChild(NewBullet("Press 'h' for help"))
+		m.rootBullets = []*Bullet{root}
+	}
 }
 
 func (m *Model) saveData() error {
@@ -119,6 +122,39 @@ func (m *Model) saveData() error {
 	}
 
 	return m.configManager.Save(data)
+}
+
+func (m *Model) ensureSelectedVisible() {
+	if m.height == 0 {
+		return
+	}
+	
+	// Calculate available space for content (accounting for title, breadcrumbs, help text, etc.)
+	availableHeight := m.height - 6 // Title (2 lines) + breadcrumbs (2 lines) + help (2 lines)
+	if m.editMode == EditModeNew {
+		availableHeight -= 2 // New bullet input
+	}
+	
+	// Ensure selected item is visible in viewport
+	if m.selectedIndex < m.scrollOffset {
+		m.scrollOffset = m.selectedIndex
+	} else if m.selectedIndex >= m.scrollOffset+availableHeight {
+		m.scrollOffset = m.selectedIndex - availableHeight + 1
+	}
+	
+	// Ensure scroll offset doesn't go negative
+	if m.scrollOffset < 0 {
+		m.scrollOffset = 0
+	}
+	
+	// Ensure we don't scroll past the content
+	maxScroll := len(m.allBullets) - availableHeight
+	if maxScroll < 0 {
+		maxScroll = 0
+	}
+	if m.scrollOffset > maxScroll {
+		m.scrollOffset = maxScroll
+	}
 }
 
 func (m *Model) rebuildVisibleList() {
@@ -205,6 +241,7 @@ func (m *Model) addNewBullet(content string) {
 			break
 		}
 	}
+	m.ensureSelectedVisible()
 	
 	// Auto-save after adding new bullet
 	m.saveData()
@@ -231,6 +268,7 @@ func (m *Model) deleteBullet() {
 	if m.selectedIndex >= len(m.allBullets) && m.selectedIndex > 0 {
 		m.selectedIndex--
 	}
+	m.ensureSelectedVisible()
 	
 	// Auto-save after deleting bullet
 	m.saveData()
@@ -270,6 +308,7 @@ func (m *Model) indentBullet() {
 	}
 
 	m.rebuildVisibleList()
+	m.ensureSelectedVisible()
 }
 
 func (m *Model) outdentBullet() {
@@ -307,6 +346,7 @@ func (m *Model) outdentBullet() {
 	}
 
 	m.rebuildVisibleList()
+	m.ensureSelectedVisible()
 }
 
 func (m *Model) moveBulletUp() {
@@ -409,6 +449,7 @@ func (m *Model) moveBulletUp() {
 	if m.selectedIndex > 0 {
 		m.selectedIndex--
 	}
+	m.ensureSelectedVisible()
 }
 
 func (m *Model) moveBulletDown() {
@@ -511,6 +552,7 @@ func (m *Model) moveBulletDown() {
 	if m.selectedIndex < len(m.allBullets)-1 {
 		m.selectedIndex++
 	}
+	m.ensureSelectedVisible()
 }
 
 func (m *Model) zoomIn() {
@@ -534,7 +576,9 @@ func (m *Model) zoomIn() {
 	
 	m.zoomedBullet = selected
 	m.selectedIndex = 0
+	m.scrollOffset = 0
 	m.rebuildVisibleList()
+	m.ensureSelectedVisible()
 }
 
 func (m *Model) zoomOut() {
@@ -549,7 +593,9 @@ func (m *Model) zoomOut() {
 	}
 	
 	m.selectedIndex = 0
+	m.scrollOffset = 0
 	m.rebuildVisibleList()
+	m.ensureSelectedVisible()
 }
 
 func (m Model) Init() tea.Cmd {
@@ -647,11 +693,13 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "up", "k":
 			if m.selectedIndex > 0 {
 				m.selectedIndex--
+				m.ensureSelectedVisible()
 			}
 
 		case "down", "j":
 			if m.selectedIndex < len(m.allBullets)-1 {
 				m.selectedIndex++
+				m.ensureSelectedVisible()
 			}
 
 		case "enter":
@@ -684,6 +732,7 @@ func (m Model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if selected := m.getSelectedBullet(); selected != nil {
 				selected.Toggle()
 				m.rebuildVisibleList()
+				m.ensureSelectedVisible()
 			}
 
 		case "shift+up":
@@ -752,7 +801,7 @@ func (m Model) View() string {
 		return m.renderHelp(appStyle, titleStyle)
 	}
 	
-	contentBuilder.WriteString(titleStyle.Render("ocli"))
+	contentBuilder.WriteString(titleStyle.Render("OCLI"))
 	
 	// Show breadcrumbs when zoomed
 	if m.zoomedBullet != nil {
@@ -799,7 +848,22 @@ func (m Model) View() string {
 	// Style for vertical hierarchy lines
 	lineStyle := lipgloss.NewStyle().Foreground(lipgloss.Color("240"))
 
-	for i, bullet := range m.allBullets {
+	// Calculate available space for content
+	availableHeight := m.height - 6 // Title (2 lines) + breadcrumbs (2 lines) + help (2 lines)
+	if m.editMode == EditModeNew {
+		availableHeight -= 2 // New bullet input
+	}
+
+	// Calculate visible range
+	startIndex := m.scrollOffset
+	endIndex := m.scrollOffset + availableHeight
+	if endIndex > len(m.allBullets) {
+		endIndex = len(m.allBullets)
+	}
+
+	// Only render visible bullets
+	for i := startIndex; i < endIndex; i++ {
+		bullet := m.allBullets[i]
 		var indent string
 		var depth int
 		
@@ -899,6 +963,20 @@ func (m Model) View() string {
 		MarginTop(2)
 
 	help := "\n'h' for help • 's' for settings"
+	
+	// Add scroll indicators if there's more content
+	if len(m.allBullets) > availableHeight {
+		totalItems := len(m.allBullets)
+		visibleStart := m.scrollOffset + 1
+		visibleEnd := endIndex
+		if visibleEnd > totalItems {
+			visibleEnd = totalItems
+		}
+		
+		scrollInfo := fmt.Sprintf(" • %d-%d of %d", visibleStart, visibleEnd, totalItems)
+		help += scrollInfo
+	}
+	
 	contentBuilder.WriteString(helpStyle.Render(help))
 
 	// Apply padding to the entire content

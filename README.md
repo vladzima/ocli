@@ -94,6 +94,8 @@ OCLI automatically saves your data to `~/.config/ocli/data.json`. All changes ar
 - Change settings
 - Quit the application
 
+**Update Safety**: Your data is always preserved when updating OCLI. Tutorial content only appears for new installations - existing users keep all their data intact.
+
 ## Configuration
 
 Settings are stored in the same JSON file and include:
