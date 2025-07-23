@@ -53,6 +53,6 @@ jobs:
 ## Distribution
 
 The package can be installed via:
-- `go install github.com/vladarbatov/ocli@latest`
+- `go install github.com/vladzima/ocli@latest`
 - Direct binary download from releases
 - Package managers (future: homebrew, apt, etc.)
