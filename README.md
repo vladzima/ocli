@@ -22,7 +22,7 @@ A terminal-based outliner and task manager, built with Go and the Charm TUI stac
 Requirements: Go 1.19+ installed on your system
 
 ```bash
-go install github.com/vladvarbatov/ocli@latest
+go install github.com/vladzima/ocli@latest
 ```
 
 Make sure your `$GOPATH/bin` is in your `$PATH`. Add this to your shell profile if needed:
