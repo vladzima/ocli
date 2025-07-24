@@ -1,5 +1,8 @@
 # OCLI - Terminal Outliner
 
+![OCLI Screenshot](https://cdn.arbatov.dev/762J4rdLGoGAJEECGJFYngGPq.png)
+
+
 A terminal-based outliner and task manager, built with Go and the Charm TUI stack.
 
 ![OCLI Demo](https://img.shields.io/badge/Status-Ready-green)
