@@ -3,7 +3,7 @@
 ![OCLI Screenshot](https://cdn.arbatov.dev/762J4rdLGoGAJEECGJFYngGPq.png)
 
 
-A terminal-based outliner and task manager, built with Go and the Charm TUI stack.
+A terminal-based outliner and task manager, built with Go. Run locally or as an SSH app!
 
 ![OCLI Demo](https://img.shields.io/badge/Status-Ready-green)
 
@@ -62,7 +62,7 @@ ocli
 
 On first run, OCLI creates a config directory at `~/.config/ocli/` with default tutorial content.
 
-### Use as remote SSH app
+## Use as remote SSH app
 
 Use OCLI remotely with persistent cloud storage:
 
