@@ -12,25 +12,39 @@ This guide shows how to deploy the OCLI SSH server to Railway for public access.
 
 ### 2. Deploy to Railway
 
-1. **Connect Repository**
-   - Go to [railway.app](https://railway.app)
-   - Click "Start a new project"
-   - Connect your GitHub repository
-   - Select the ocli repository
+#### Step 1: Create Project
+1. Go to [railway.app](https://railway.app) and sign in
+2. Click "New Project"
+3. Choose "Deploy from GitHub repo"
+4. Connect your GitHub account if needed
+5. Select your ocli repository
 
-2. **Configure Build**
-   - Railway will automatically detect the Dockerfile
-   - The build will use `cmd/ocli-ssh/Dockerfile`
+#### Step 2: Configure Service
+1. Railway will detect the Dockerfile automatically
+2. Wait for the initial build to complete (may fail - that's okay)
 
-3. **Set Environment Variables**
-   ```
-   OCLI_SSH_AUTO_REGISTER=true
-   OCLI_SSH_DATA_DIR=/data
-   ```
+#### Step 3: Add Persistent Volume
+1. In your Railway project dashboard, click on your service
+2. Go to the "Variables" tab
+3. Scroll down to the "Volumes" section
+4. Click "New Volume"
+5. Configure:
+   - **Mount Path**: `/data`
+   - **Size**: 1GB (can increase later)
+6. Click "Add Volume"
 
-4. **Deploy**
-   - Railway will automatically build and deploy
-   - You'll get a URL like `your-project.railway.app`
+#### Step 4: Set Environment Variables
+In the "Variables" tab, add these environment variables:
+```
+OCLI_SSH_AUTO_REGISTER=true
+OCLI_SSH_DATA_DIR=/data
+```
+
+#### Step 5: Deploy
+1. Go to "Deployments" tab
+2. Trigger a new deployment (or push a commit to trigger auto-deploy)
+3. Wait for build to complete
+4. Your service will be available at `your-project.railway.app`
 
 ### 3. Connect to Your Server
 
@@ -81,9 +95,22 @@ With `OCLI_SSH_AUTO_REGISTER=true`:
 
 Railway provides persistent volumes for data storage:
 
-1. Go to your service settings
-2. Click "Variables" → "Volume"
-3. Mount `/data` to ensure user data persists across deployments
+1. **Create Volume**:
+   - Go to your service in Railway dashboard
+   - Click "Variables" tab
+   - Scroll to "Volumes" section
+   - Click "New Volume"
+
+2. **Configure Volume**:
+   - **Mount Path**: `/data`
+   - **Size**: Start with 1GB, can be increased later
+   - Click "Add Volume"
+
+3. **Verify Configuration**:
+   - Ensure `OCLI_SSH_DATA_DIR=/data` environment variable is set
+   - User data will persist across deployments and restarts
+
+**Important**: Without a volume, user data will be lost on each deployment.
 
 ## Monitoring
 

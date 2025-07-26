@@ -41,9 +41,6 @@ USER ocli
 # Expose SSH port (Railway will override with PORT env var)
 EXPOSE 2222
 
-# Volume for persistent data
-VOLUME ["/data"]
-
 # Set default environment variables
 ENV OCLI_SSH_DATA_DIR=/data
 ENV OCLI_SSH_AUTO_REGISTER=true
