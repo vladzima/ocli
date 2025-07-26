@@ -8,21 +8,21 @@ import (
 	"path/filepath"
 	"strings"
 
-	cssh "github.com/charmbracelet/ssh"
-	"golang.org/x/crypto/ssh"
+	"github.com/charmbracelet/ssh"
+	gossh "golang.org/x/crypto/ssh"
 )
 
 // AuthManager handles SSH key authentication for users
 type AuthManager struct {
 	dataDir        string
-	authorizedKeys map[string][]ssh.PublicKey // username -> authorized keys
+	authorizedKeys map[string][]gossh.PublicKey // username -> authorized keys
 }
 
 // NewAuthManager creates a new authentication manager
 func NewAuthManager(dataDir string) (*AuthManager, error) {
 	am := &AuthManager{
 		dataDir:        dataDir,
-		authorizedKeys: make(map[string][]ssh.PublicKey),
+		authorizedKeys: make(map[string][]gossh.PublicKey),
 	}
 
 	// Load all user authorized_keys files
@@ -66,7 +66,7 @@ func (am *AuthManager) loadUserKeys(username string) error {
 	}
 	defer file.Close()
 
-	var keys []ssh.PublicKey
+	var keys []gossh.PublicKey
 	scanner := bufio.NewScanner(file)
 	
 	for scanner.Scan() {
@@ -75,7 +75,7 @@ func (am *AuthManager) loadUserKeys(username string) error {
 			continue
 		}
 
-		key, _, _, _, err := ssh.ParseAuthorizedKey([]byte(line))
+		key, _, _, _, err := gossh.ParseAuthorizedKey([]byte(line))
 		if err != nil {
 			// Skip invalid keys
 			continue
@@ -93,15 +93,21 @@ func (am *AuthManager) loadUserKeys(username string) error {
 }
 
 // Authenticate checks if a public key is authorized for a user
-func (am *AuthManager) Authenticate(username string, key cssh.PublicKey) bool {
+func (am *AuthManager) Authenticate(username string, key ssh.PublicKey) bool {
 	userKeys, exists := am.authorizedKeys[username]
 	if !exists {
 		return false
 	}
 
-	keyData := key.Marshal()
+	// Convert charmbracelet/ssh key to golang.org/x/crypto/ssh key for comparison
+	gosshKey, err := convertToGosshKey(key)
+	if err != nil {
+		return false
+	}
+
+	keyData := gosshKey.Marshal()
 	for _, authorizedKey := range userKeys {
-		if authorizedKey.Type() == key.Type() && 
+		if authorizedKey.Type() == gosshKey.Type() && 
 			subtle.ConstantTimeCompare(authorizedKey.Marshal(), keyData) == 1 {
 			return true
 		}
@@ -111,7 +117,7 @@ func (am *AuthManager) Authenticate(username string, key cssh.PublicKey) bool {
 }
 
 // AuthenticateOrRegister checks auth and optionally registers new users
-func (am *AuthManager) AuthenticateOrRegister(username string, key cssh.PublicKey, autoRegister bool) bool {
+func (am *AuthManager) AuthenticateOrRegister(username string, key ssh.PublicKey, autoRegister bool) bool {
 	// First try normal authentication
 	if am.Authenticate(username, key) {
 		return true
@@ -132,15 +138,21 @@ func (am *AuthManager) AuthenticateOrRegister(username string, key cssh.PublicKe
 }
 
 // AddUserKey adds a new SSH key for a user (used for auto-registration)
-func (am *AuthManager) AddUserKey(username string, key cssh.PublicKey) error {
+func (am *AuthManager) AddUserKey(username string, key ssh.PublicKey) error {
 	// Create user directory
 	userDir := filepath.Join(am.dataDir, "users", username)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
 		return fmt.Errorf("failed to create user directory: %w", err)
 	}
 
+	// Convert charmbracelet/ssh key to golang.org/x/crypto/ssh key for storage
+	gosshKey, err := convertToGosshKey(key)
+	if err != nil {
+		return fmt.Errorf("failed to convert key: %w", err)
+	}
+
 	// Add to in-memory store
-	am.authorizedKeys[username] = append(am.authorizedKeys[username], key)
+	am.authorizedKeys[username] = append(am.authorizedKeys[username], gosshKey)
 
 	// Write to authorized_keys file
 	keysFile := filepath.Join(userDir, "authorized_keys")
@@ -151,7 +163,7 @@ func (am *AuthManager) AddUserKey(username string, key cssh.PublicKey) error {
 	defer file.Close()
 
 	// Format the key in authorized_keys format
-	keyLine := cssh.FormatAuthorizedKey(key)
+	keyLine := gossh.MarshalAuthorizedKey(gosshKey)
 	if _, err := file.Write(keyLine); err != nil {
 		return fmt.Errorf("failed to write key: %w", err)
 	}
@@ -168,7 +180,7 @@ func (am *AuthManager) AddUserFromFile(username, publicKeyPath string) error {
 	}
 
 	// Parse the key
-	key, _, _, _, err := ssh.ParseAuthorizedKey(keyData)
+	key, _, _, _, err := gossh.ParseAuthorizedKey(keyData)
 	if err != nil {
 		return fmt.Errorf("failed to parse public key: %w", err)
 	}
@@ -198,4 +210,24 @@ func (am *AuthManager) RemoveUser(username string) error {
 
 	// Note: actual directory removal is handled by the server
 	return nil
+}
+
+// convertToGosshKey converts a charmbracelet/ssh key to golang.org/x/crypto/ssh key
+func convertToGosshKey(key ssh.PublicKey) (gossh.PublicKey, error) {
+	// Get the key data and type
+	keyData := key.Marshal()
+	keyType := key.Type()
+	
+	// Parse it back as a golang.org/x/crypto/ssh key
+	gosshKey, err := gossh.ParsePublicKey(keyData)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse key: %w", err)
+	}
+	
+	// Verify the type matches
+	if gosshKey.Type() != keyType {
+		return nil, fmt.Errorf("key type mismatch: expected %s, got %s", keyType, gosshKey.Type())
+	}
+	
+	return gosshKey, nil
 }

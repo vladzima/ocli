@@ -41,17 +41,17 @@ func NewServer(host, port, dataDir, keyPath string, autoRegister bool) (*Server,
 
 	// Configure server options
 	opts := []ssh.Option{
-		ssh.WithAddress(fmt.Sprintf("%s:%s", host, port)),
-		ssh.WithMiddleware(middleware...),
-		ssh.WithPublicKeyAuth(s.authHandler),
+		wish.WithAddress(fmt.Sprintf("%s:%s", host, port)),
+		wish.WithMiddleware(middleware...),
+		wish.WithPublicKeyAuth(s.authHandler),
 	}
 
 	// Add host key path if specified
 	if keyPath != "" {
-		opts = append(opts, ssh.WithHostKeyPath(keyPath))
+		opts = append(opts, wish.WithHostKeyPath(keyPath))
 	}
 
-	srv, err := ssh.NewServer(opts...)
+	srv, err := wish.NewServer(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create wish server: %w", err)
 	}
