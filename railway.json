@@ -5,7 +5,6 @@
     "dockerfilePath": "./cmd/ocli-ssh/Dockerfile"
   },
   "deploy": {
-    "startCommand": "./ocli-ssh --key /ssh-keys/ssh_host_ed25519_key",
     "restartPolicyType": "ON_FAILURE",
     "restartPolicyMaxRetries": 3
   }
