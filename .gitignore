@@ -7,6 +7,17 @@
 
 # Binary name
 ocli
+ocli-ssh-server*
+
+# SSH keys - NEVER commit these!
+**/id_ed25519
+**/id_ed25519.pub
+**/id_rsa
+**/id_rsa.pub
+**/ssh_host_key
+**/ssh_host_key.pub
+*.pem
+*.key
 
 # Test binary, built with `go test -c`
 *.test
@@ -23,6 +34,11 @@ builds/
 # Configuration and data files (for development)
 .config/
 data.json
+
+# SSH data directories
+data/
+.ocli-ssh/
+**/users/
 
 # IDE and editor files
 .DS_Store
@@ -52,3 +68,11 @@ data.json
 /.cursorrules.json
 /.cursorrules.jsonc
 /.cursorrules.jsonl
+
+# Deployment artifacts
+ocli-ssh-server-*
+
+# Keep deployment scripts
+# deploy-gcp.sh
+# install-client.sh
+# setup-ssh-config.sh
