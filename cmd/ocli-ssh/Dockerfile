@@ -7,11 +7,11 @@ RUN apk add --no-cache git
 WORKDIR /app
 
 # Copy go mod and source files
-COPY go.mod go.sum ./
+COPY cmd/ocli-ssh/go.mod cmd/ocli-ssh/go.sum ./
 RUN go mod download
 
-# Copy all source files explicitly
-COPY main.go server.go auth.go ssh_model.go model.go bullet.go persistence.go ./
+# Copy all source files explicitly from the cmd/ocli-ssh directory
+COPY cmd/ocli-ssh/main.go cmd/ocli-ssh/server.go cmd/ocli-ssh/auth.go cmd/ocli-ssh/ssh_model.go cmd/ocli-ssh/model.go cmd/ocli-ssh/bullet.go cmd/ocli-ssh/persistence.go ./
 
 # Build the SSH server with explicit output name and verify
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ocli-ssh-server . && \
