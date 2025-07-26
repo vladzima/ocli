@@ -13,8 +13,8 @@ RUN go mod download
 # Copy all source files
 COPY *.go ./
 
-# Build the SSH server
-RUN go build -o ocli-ssh .
+# Build the SSH server with explicit output name
+RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o ocli-ssh-server .
 
 # Runtime stage
 FROM alpine:latest
@@ -32,8 +32,8 @@ RUN mkdir -p /data /ssh-keys && \
 WORKDIR /app
 
 # Copy binary from builder
-COPY --from=builder /app/ocli-ssh .
-RUN chmod +x ocli-ssh
+COPY --from=builder /app/ocli-ssh-server ./ocli-ssh-server
+RUN chmod +x ocli-ssh-server
 
 # Switch to non-root user
 USER ocli
@@ -45,8 +45,5 @@ EXPOSE 2222
 ENV OCLI_SSH_DATA_DIR=/data
 ENV OCLI_SSH_AUTO_REGISTER=true
 
-# Generate host key on startup if not exists and start server
-CMD if [ ! -f /ssh-keys/ssh_host_ed25519_key ]; then \
-        ssh-keygen -t ed25519 -f /ssh-keys/ssh_host_ed25519_key -N ''; \
-    fi && \
-    ./ocli-ssh --key /ssh-keys/ssh_host_ed25519_key
+# Start server (will auto-generate host key if needed)
+CMD ["./ocli-ssh-server"]
