@@ -35,7 +35,12 @@ func main() {
 
 	envDataDir := os.Getenv("OCLI_SSH_DATA_DIR")
 	if envDataDir == "" {
-		envDataDir = "/var/lib/ocli-ssh"
+		// Use a user-writable directory by default
+		if homeDir, err := os.UserHomeDir(); err == nil {
+			envDataDir = homeDir + "/.ocli-ssh"
+		} else {
+			envDataDir = "./data"
+		}
 	}
 
 	envAutoRegister := false
@@ -86,6 +91,7 @@ func main() {
 
 	log.Printf("Starting OCLI SSH server on %s:%s", *host, *port)
 	log.Printf("Data directory: %s", *dataDir)
+	log.Printf("SSH key path: %s", *keyPath)
 	if *autoRegister {
 		log.Println("Auto-registration: ENABLED (new users will be created automatically)")
 	} else {
@@ -96,6 +102,16 @@ func main() {
 		log.Println("To add users: ocli-ssh --add-user username:path/to/key.pub")
 	}
 	log.Println("To connect: ssh username@hostname -p", *port)
+	
+	// Debug: Check if we can write to data directory
+	testFile := *dataDir + "/test"
+	if f, err := os.Create(testFile); err != nil {
+		log.Printf("WARNING: Cannot write to data directory: %v", err)
+	} else {
+		f.Close()
+		os.Remove(testFile)
+		log.Printf("Data directory is writable")
+	}
 	
 	go func() {
 		if err := srv.Start(); err != nil {
