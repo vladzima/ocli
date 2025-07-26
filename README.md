@@ -62,6 +62,22 @@ ocli
 
 On first run, OCLI creates a config directory at `~/.config/ocli/` with default tutorial content.
 
+### Use as remote SSH app
+
+Use OCLI remotely with persistent cloud storage:
+
+```bash
+# Install remote client (one-time setup)
+curl -fsSL https://raw.githubusercontent.com/vladzima/ocli/main/cmd/ocli-ssh/install-client.sh | bash
+
+# Connect remotely
+ocli
+```
+
+Your data is automatically saved on the server and synced across sessions. Perfect for accessing your notes from anywhere!
+
+> **Alternative**: Use `ssh ocli` after running the [SSH config setup](cmd/ocli-ssh#quick-start).
+
 ## Keyboard Shortcuts
 
 ### Navigation

@@ -7,6 +7,7 @@ import (
 	"github.com/charmbracelet/bubbles/textinput"
 	tea "github.com/charmbracelet/bubbletea"
 	"github.com/charmbracelet/lipgloss"
+	"github.com/muesli/termenv"
 )
 
 type EditMode int
@@ -48,6 +49,9 @@ type Model struct {
 }
 
 func NewModel() Model {
+	// Force color profile for SSH terminals
+	lipgloss.SetColorProfile(termenv.ANSI256)
+	
 	ti := textinput.New()
 	ti.Placeholder = "Enter text..."
 	ti.Focus()

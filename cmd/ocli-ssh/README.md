@@ -13,7 +13,28 @@ A multi-user SSH server for OCLI that allows users to access their personal OCLI
 
 ## Quick Start
 
-### 1. Build the Server
+### For Users (Connecting to OCLI)
+
+**Option 1: Install OCLI client (Recommended)**
+```bash
+curl -fsSL https://raw.githubusercontent.com/vladzima/ocli/main/cmd/ocli-ssh/install-client.sh | bash
+ocli  # Connect instantly!
+```
+
+**Option 2: Setup SSH config**
+```bash
+curl -fsSL https://raw.githubusercontent.com/vladzima/ocli/main/cmd/ocli-ssh/setup-ssh-config.sh | bash
+ssh ocli  # Connect with short command!
+```
+
+**Option 3: Direct connection**
+```bash
+ssh username@34.61.150.52 -p 2222
+```
+
+### For Server Administrators
+
+#### 1. Build the Server
 
 ```bash
 cd cmd/ocli-ssh

@@ -12,8 +12,9 @@ import (
 // SSHModel wraps the base OCLI model for SSH sessions
 type SSHModel struct {
 	Model
-	username string
-	userDir  string
+	username      string
+	userDir       string
+	configManager *SSHConfigManager
 }
 
 // NewSSHModel creates a new model for SSH sessions
@@ -48,9 +49,10 @@ func NewSSHModel(username, dataDir string) (*SSHModel, error) {
 	baseModel.rebuildVisibleList()
 
 	return &SSHModel{
-		Model:    baseModel,
-		username: username,
-		userDir:  userDir,
+		Model:         baseModel,
+		username:      username,
+		userDir:       userDir,
+		configManager: configManager,
 	}, nil
 }
 
@@ -105,6 +107,39 @@ func (cm *SSHConfigManager) createDefaultData() *AppData {
 	return getDefaultSSHData(cm.username)
 }
 
+// Update overrides the base model's Update to handle SSH-specific saving
+func (m *SSHModel) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
+	// Call the base model's update
+	updatedModel, cmd := m.Model.Update(msg)
+	
+	// Update our embedded model
+	m.Model = updatedModel.(Model)
+	
+	// Save data after any operation that might change it
+	switch msg := msg.(type) {
+	case tea.KeyMsg:
+		switch msg.String() {
+		case "enter", "d", "tab", "shift+tab", "shift+up", "shift+down", "c", "t", "x", "e":
+			// These operations modify data, so save
+			m.saveSSHData()
+		case "q", "ctrl+c":
+			// Save before quitting
+			m.saveSSHData()
+		}
+	}
+	
+	return m, cmd
+}
+
+// saveSSHData saves the current state using SSH config manager
+func (m *SSHModel) saveSSHData() error {
+	data := &AppData{
+		RootBullets: m.rootBullets,
+		Settings:    m.settings,
+	}
+	return m.configManager.Save(data)
+}
+
 // View overrides the base view to add username
 func (m *SSHModel) View() string {
 	baseView := m.Model.View()
@@ -116,28 +151,33 @@ func (m *SSHModel) View() string {
 
 // Helper functions
 func getDefaultSSHData(username string) *AppData {
+	// Create the same tutorial as local ocli but personalized for SSH
+	welcome := NewBullet(fmt.Sprintf("Welcome to OCLI over SSH, %s!", username))
+	
+	// Essential basics
+	welcome.AddChild(NewBullet("Press Enter to add bullets, ↑↓ to navigate"))
+	welcome.AddChild(NewBullet("Tab/Shift+Tab to indent/outdent"))
+	
+	// Show task example
+	task := NewBullet("Press 't' for tasks, 'x' to complete")
+	task.ToggleTask()
+	welcome.AddChild(task)
+	
+	// Show colors
+	colored := NewBullet("Press 'c' for colors")
+	colored.Color = ColorBlue
+	welcome.AddChild(colored)
+	
+	// Essential features
+	collapse := NewBullet("Space to collapse/expand, → to zoom in")
+	collapse.AddChild(NewBullet("Hidden content"))
+	welcome.AddChild(collapse)
+	
+	welcome.AddChild(NewBullet("Press 'h' for help, 's' for settings, 'q' to quit"))
+	welcome.AddChild(NewBullet("Your data is saved automatically on this server"))
+
 	return &AppData{
-		RootBullets: []*Bullet{
-			{
-				Content: fmt.Sprintf("Welcome to OCLI over SSH, %s!", username),
-				Children: []*Bullet{
-					{Content: "This is your personal OCLI instance"},
-					{Content: "Your data is saved automatically"},
-					{Content: "Press 'h' for help"},
-				},
-			},
-			{
-				Content: "Quick Start",
-				Children: []*Bullet{
-					{Content: "↑↓ or j/k - Navigate"},
-					{Content: "Enter - Create new bullet"},
-					{Content: "Tab/Shift+Tab - Indent/Outdent"},
-					{Content: "'t' - Toggle task mode"},
-					{Content: "'c' - Cycle colors"},
-				},
-				Collapsed: true,
-			},
-		},
+		RootBullets: []*Bullet{welcome},
 		Settings: Settings{
 			ShowHierarchyLines: true,
 		},

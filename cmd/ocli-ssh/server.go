@@ -63,6 +63,10 @@ func NewServer(host, port, dataDir, keyPath string, autoRegister bool) (*Server,
 		wish.WithMiddleware(middleware...),
 		wish.WithPublicKeyAuth(s.authHandler),
 		wish.WithHostKeyPath(keyPath),
+		// Disable password auth explicitly
+		wish.WithPasswordAuth(func(ctx ssh.Context, password string) bool {
+			return false
+		}),
 	}
 
 	fmt.Printf("Creating wish server with %d options\n", len(opts))
@@ -117,6 +121,17 @@ func (s *Server) teaHandler(sess ssh.Session) (tea.Model, []tea.ProgramOption) {
 		username = "anonymous"
 	}
 
+	// Force terminal environment variables for proper color support
+	pty, _, _ := sess.Pty()
+	if pty.Term == "" {
+		pty.Term = "xterm-256color"
+	}
+	
+	// Set environment variables for color support
+	os.Setenv("TERM", pty.Term)
+	os.Setenv("COLORTERM", "truecolor")
+	os.Setenv("FORCE_COLOR", "1")
+
 	// Create user-specific model
 	model, err := NewSSHModel(username, s.dataDir)
 	if err != nil {
@@ -124,7 +139,7 @@ func (s *Server) teaHandler(sess ssh.Session) (tea.Model, []tea.ProgramOption) {
 		return NewErrorModel(fmt.Sprintf("Failed to initialize: %v", err)), []tea.ProgramOption{tea.WithAltScreen()}
 	}
 
-	// Return model with appropriate options
+	// Return model with SSH-optimized options
 	return model, []tea.ProgramOption{
 		tea.WithAltScreen(),
 		tea.WithMouseCellMotion(),

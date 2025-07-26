@@ -7,7 +7,7 @@
 
 # Binary name
 ocli
-ocli-ssh-server
+ocli-ssh-server*
 
 # SSH keys - NEVER commit these!
 **/id_ed25519
@@ -68,3 +68,11 @@ data/
 /.cursorrules.json
 /.cursorrules.jsonc
 /.cursorrules.jsonl
+
+# Deployment artifacts
+ocli-ssh-server-*
+
+# Keep deployment scripts
+# deploy-gcp.sh
+# install-client.sh
+# setup-ssh-config.sh
