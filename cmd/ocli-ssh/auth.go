@@ -8,7 +8,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/charmbracelet/ssh"
+	cssh "github.com/charmbracelet/ssh"
 	"golang.org/x/crypto/ssh"
 )
 
@@ -93,7 +93,7 @@ func (am *AuthManager) loadUserKeys(username string) error {
 }
 
 // Authenticate checks if a public key is authorized for a user
-func (am *AuthManager) Authenticate(username string, key ssh.PublicKey) bool {
+func (am *AuthManager) Authenticate(username string, key cssh.PublicKey) bool {
 	userKeys, exists := am.authorizedKeys[username]
 	if !exists {
 		return false
@@ -111,7 +111,7 @@ func (am *AuthManager) Authenticate(username string, key ssh.PublicKey) bool {
 }
 
 // AuthenticateOrRegister checks auth and optionally registers new users
-func (am *AuthManager) AuthenticateOrRegister(username string, key ssh.PublicKey, autoRegister bool) bool {
+func (am *AuthManager) AuthenticateOrRegister(username string, key cssh.PublicKey, autoRegister bool) bool {
 	// First try normal authentication
 	if am.Authenticate(username, key) {
 		return true
@@ -132,7 +132,7 @@ func (am *AuthManager) AuthenticateOrRegister(username string, key ssh.PublicKey
 }
 
 // AddUserKey adds a new SSH key for a user (used for auto-registration)
-func (am *AuthManager) AddUserKey(username string, key ssh.PublicKey) error {
+func (am *AuthManager) AddUserKey(username string, key cssh.PublicKey) error {
 	// Create user directory
 	userDir := filepath.Join(am.dataDir, "users", username)
 	if err := os.MkdirAll(userDir, 0700); err != nil {
@@ -151,7 +151,7 @@ func (am *AuthManager) AddUserKey(username string, key ssh.PublicKey) error {
 	defer file.Close()
 
 	// Format the key in authorized_keys format
-	keyLine := ssh.FormatAuthorizedKey(key)
+	keyLine := cssh.FormatAuthorizedKey(key)
 	if _, err := file.Write(keyLine); err != nil {
 		return fmt.Errorf("failed to write key: %w", err)
 	}

@@ -10,8 +10,8 @@ WORKDIR /app
 COPY cmd/ocli-ssh/go.mod cmd/ocli-ssh/go.sum ./
 RUN go mod download
 
-# Copy all SSH server source files
-COPY cmd/ocli-ssh/*.go ./
+# Copy specific SSH server source files (excluding test files)
+COPY cmd/ocli-ssh/main.go cmd/ocli-ssh/server.go cmd/ocli-ssh/auth.go cmd/ocli-ssh/ssh_model.go cmd/ocli-ssh/model.go cmd/ocli-ssh/bullet.go cmd/ocli-ssh/persistence.go ./
 
 # Build the SSH server
 RUN CGO_ENABLED=0 GOOS=linux go build -o ocli-ssh-server .

@@ -41,10 +41,10 @@ func NewSSHModel(username, dataDir string) (*SSHModel, error) {
 	// Create base model
 	baseModel := NewModel()
 	
-	// Override with user-specific data and config manager
+	// Override with user-specific data
 	baseModel.rootBullets = data.RootBullets
 	baseModel.settings = data.Settings
-	baseModel.configManager = configManager
+	// Note: baseModel.configManager stays as the original since types don't match
 	baseModel.rebuildVisibleList()
 
 	return &SSHModel{
@@ -135,7 +135,7 @@ func getDefaultSSHData(username string) *AppData {
 					{Content: "'t' - Toggle task mode"},
 					{Content: "'c' - Cycle colors"},
 				},
-				IsCollapsed: true,
+				Collapsed: true,
 			},
 		},
 		Settings: Settings{
@@ -152,13 +152,13 @@ func copyBulletsWithoutParents(bullets []*Bullet) []*Bullet {
 	result := make([]*Bullet, len(bullets))
 	for i, b := range bullets {
 		result[i] = &Bullet{
-			ID:          b.ID,
-			Content:     b.Content,
-			Children:    copyBulletsWithoutParents(b.Children),
-			IsCollapsed: b.IsCollapsed,
-			IsTask:      b.IsTask,
-			IsCompleted: b.IsCompleted,
-			Color:       b.Color,
+			ID:        b.ID,
+			Content:   b.Content,
+			Children:  copyBulletsWithoutParents(b.Children),
+			Collapsed: b.Collapsed,
+			IsTask:    b.IsTask,
+			Completed: b.Completed,
+			Color:     b.Color,
 		}
 	}
 	return result
